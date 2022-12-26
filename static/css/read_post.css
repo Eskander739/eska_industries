@@ -1,0 +1,30 @@
+/* html, body {
+    height: 100%;
+    overflow: hidden;
+  }
+   */
+.mainImage{
+    margin: 0 auto; 
+    width: 70%;
+    height: 50%;
+
+}
+
+body{
+    background-color: rgba(207, 207, 207, 0.487);
+}
+.post-type{
+    position:absolute;
+    /* word-wrap: break-word; */
+    /* overflow-x:hidden; */
+    background-color: rgb(255, 255, 255);
+    /* min-height: 100%;  */
+    width: 900px;
+    height: 100% + 180px;
+    left: 300px;
+    margin: 0 auto; 
+    margin-top: 180px;
+    box-shadow: 0 0 5px;
+    text-align: center;
+    
+}
