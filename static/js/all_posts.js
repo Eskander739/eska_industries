@@ -108,12 +108,12 @@ function DataPosts() {
         var buttonLinkB = document.createElement('a');
         buttonLinkB.className = "nav-link";
         buttonLinkB.innerText = "Удалить";
-        buttonLinkB.href = `http://localhost:8000/posts/${post.Id}/deleted`;
+        buttonLinkB.href = `http://localhost:8000/admin/posts/${post.Id}/deleted`;
 
         var buttonLinkA = document.createElement('a');
         buttonLinkA.className = "nav-link";
         buttonLinkA.innerText = "Редактировать";
-        buttonLinkA.href = `http://localhost:8000/posts/${post.Id}/changed`;//${post.title}/${post.content}
+        buttonLinkA.href = `http://localhost:8000/admin/posts/${post.Id}/changed`;//${post.title}/${post.content}
         var buttonRemove = document.createElement('button');
         var buttonEdit = document.createElement('button');
         var idd = document.createElement('label');

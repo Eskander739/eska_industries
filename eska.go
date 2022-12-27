@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
@@ -12,6 +14,8 @@ import (
 	"path/filepath"
 	"time"
 )
+
+const adminId = "5f5130c4-74ef-3f13-af4c-0b5137a36fe8"
 
 func mailInfoForReg(toUser string, bodyUUID4 string) {
 	from := "ataxxonnext@yandex.com"
@@ -30,6 +34,35 @@ func mailInfoForReg(toUser string, bodyUUID4 string) {
 		"To:" + toUser + "\r\n" +
 		"Subject: Регистрация на сайте ESKA\r\n\r\n" + // Заголовок
 		"Чтобы завершить регистрацию пройдите по ссылке: http://localhost:8000/new-user/" + bodyUUID4 + "\r\n") // Тело сообщения
+
+	auth := smtp.PlainAuth("", user, password, host)
+
+	err := smtp.SendMail(addr, auth, from, to, msg)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("Email sent successfully")
+}
+
+func contactMail(User string, bodyUUID4 string, UserEmail string) {
+	from := "ataxxonnext@yandex.com"
+
+	user := "ataxxonnext@yandex.com"
+	password := "qpxdchfajfcsmyhj"
+
+	to := []string{
+		"lastrogue222@gmail.com",
+	}
+	//"imap": "imap.yandex.ru", "smtp": "smtp.yandex.ru", "imap_port": 993, "smtp_port": 587
+	addr := "smtp.yandex.ru:587"
+	host := "smtp.yandex.ru"
+
+	msg := []byte("From: ataxxonnext@yandex.com\r\n" +
+		"To:" + User + "\r\n" +
+		"Subject: Привет, меня зовут " + User + "\r\n\r\n" + // Заголовок
+		"Моя почта для связи -" + UserEmail + "\n\n" + bodyUUID4 + "\r\n") // Тело сообщения
 
 	auth := smtp.PlainAuth("", user, password, host)
 
@@ -126,82 +159,85 @@ type AddData struct {
 //		}
 //
 // }
-//func verifyUserPass(username, password string) bool {
-//	var usersPasswords = map[string][]byte{
-//		"joe":  []byte("$2a$12$aMfFQpGSiPiYkekov7LOsu63pZFaWzmlfm1T8lvG6JFj2Bh4SZPWS"),
-//		"mary": []byte("$2a$12$l398tX477zeEBP6Se0mAv.ZLR8.LZZehuDgbtw2yoQeMjIyCNCsRW"),
-//	}
 //
-//	wantPass, hasUser := usersPasswords[username]
-//	if !hasUser {
+//	func verifyUserPass(username, password string) bool {
+//		var usersPasswords = map[string][]byte{
+//			"joe":  []byte("$2a$12$aMfFQpGSiPiYkekov7LOsu63pZFaWzmlfm1T8lvG6JFj2Bh4SZPWS"),
+//			"mary": []byte("$2a$12$l398tX477zeEBP6Se0mAv.ZLR8.LZZehuDgbtw2yoQeMjIyCNCsRW"),
+//		}
+//
+//		wantPass, hasUser := usersPasswords[username]
+//		if !hasUser {
+//			return false
+//		}
+//		if cmperr := bcrypt.CompareHashAndPassword(wantPass, []byte(password)); cmperr == nil {
+//			return true
+//		}
 //		return false
 //	}
-//	if cmperr := bcrypt.CompareHashAndPassword(wantPass, []byte(password)); cmperr == nil {
-//		return true
-//	}
-//	return false
-//}
+func MD5Hash(text string) string {
+	/*
+		Генерирует хэш из строки
+	*/
+
+	hash := md5.Sum([]byte(text))
+	return hex.EncodeToString(hash[:])
+}
 
 func main() {
 	//var imagee chan []byte
 	//var imagee2 chan []byte
 
 	var editData = func(w http.ResponseWriter, r *http.Request) {
-		postId := mux.Vars(r)["post-id"]
 
-		if postId != "" {
-			var postParams = map[string]string{"Title": "TEXT", "Content": "TEXT"}
+		var cookie, err = r.Cookie("EskaUser")
+		fmt.Println("EERRRRR: ", err)
+		if err != nil {
+			http.Redirect(w, r, "http://localhost:8000", http.StatusSeeOther)
+		} else {
+			fmt.Println("Cookie - 0 : ", cookie.Value)
+			fmt.Println("Cookie: ", cookie)
 
-			var tables = map[string]map[string]string{"posts": postParams}
-			var posts = Db{DbName: "requests", TableName: "posts", FetchInfo: "posts", Tables: tables}
+			if cookie.Value == adminId {
+				postId := mux.Vars(r)["post-id"]
 
-			var data1, _ = posts.fetchInfo()
-			var dataToSend PostData
+				if postId != "" {
+					var postParams = map[string]string{"Title": "TEXT", "Content": "TEXT"}
 
-			for _, info := range data1 {
-				if info.(PostData).Id == postId {
-					fmt.Println("Мы нашли данные по ID: ", info.(PostData))
-					dataToSend.Title = info.(PostData).Title
-					dataToSend.Content = info.(PostData).Content
+					var tables = map[string]map[string]string{"posts": postParams}
+					var posts = Db{DbName: "requests", TableName: "posts", FetchInfo: "posts", Tables: tables}
 
+					var data1, _ = posts.fetchInfo()
+					var dataToSend PostData
+
+					for _, info := range data1 {
+						if info.(PostData).Id == postId {
+							fmt.Println("Мы нашли данные по ID: ", info.(PostData))
+							dataToSend.Title = info.(PostData).Title
+							dataToSend.Content = info.(PostData).Content
+
+						}
+					}
+
+					var data = AddData{TitleForAdd: dataToSend.Title, ContentForAdd: dataToSend.Content, IdForAdd: postId}
+					fmt.Println("r.URL: ", postId)
+					returnSEdit("edit_post.html", w, data)
 				}
+
+			} else {
+				w.WriteHeader(403)
+				http.Redirect(w, r, "http://localhost:8000", http.StatusSeeOther)
+
 			}
 
-			var data = AddData{TitleForAdd: dataToSend.Title, ContentForAdd: dataToSend.Content, IdForAdd: postId}
-			fmt.Println("r.URL: ", postId)
-			returnSEdit("edit_post.html", w, data)
 		}
 
 	}
 
 	var postList = func(w http.ResponseWriter, r *http.Request) {
-
 		var posts = Db{DbName: "requests", TableName: "posts", FetchInfo: "posts"}
-		//err = posts.AddPost()
-		//if err != nil {
-		//	panic(err)
-		//}
-
 		var data1, _ = posts.fetchInfo()
 		fmt.Println("Информация отправленная ИЗ БД: ", data1)
-
-		//for _, post := range data1 {
-		//	postData := post.(PostData)
-		//	form := multiform.NewBuilder()
-		//	form.AddField("id", postData.Id)
-		//	form.AddField("title", postData.Title)
-		//	form.AddField("content", postData.Content)
-		//	immage := bytes.NewReader(postData.Image)
-		//	dec := io.NopCloser(immage)
-		//
-		//	form.AddFormFile("image", "image.jpg", dec)
-		//	form.Done()
-		//	//r := bytes.NewReader(form)
-		//	_, err := http.Post("http://localhost:8000/add_post_all_posts", form.FormDataContentType(), form)
-		//	if err != nil {
-		//		panic(err)
-		//	}
-		//}
 		var data = map[string]any{"posts": data1}
 		var dataPosts, jsonError = json.MarshalIndent(data, "", "   ")
 		if jsonError != nil {
@@ -267,117 +303,234 @@ func main() {
 	}
 
 	var saveChanges = func(w http.ResponseWriter, r *http.Request) {
-		decoder, errReadAll := ioutil.ReadAll(r.Body)
-		if errReadAll != nil {
-			panic(errReadAll)
-		}
 
-		var data PostData
-
-		err := json.Unmarshal(decoder, &data)
+		var cookie, err = r.Cookie("EskaUser")
+		fmt.Println("EERRRRR: ", err)
 		if err != nil {
-			panic(err)
-		}
-		fmt.Println(data.Title, data.Content)
-		var postParams = map[string]string{"Title": "TEXT", "Content": "TEXT"}
+			http.Redirect(w, r, "http://localhost:8000", http.StatusSeeOther)
+		} else {
+			fmt.Println("Cookie - 0 : ", cookie.Value)
+			fmt.Println("Cookie: ", cookie)
 
-		var tables = map[string]map[string]string{"posts": postParams}
-		var post = PostData{Id: data.Id, Title: data.Title, Content: data.Content}
+			if cookie.Value == adminId {
 
-		var posts = Db{DbName: "requests", TableName: "posts", PostD: post, FetchInfo: "posts", Tables: tables}
-		err = posts.ChangePost()
-		if err != nil {
-			panic(err)
+				decoder, errReadAll := ioutil.ReadAll(r.Body)
+				if errReadAll != nil {
+					panic(errReadAll)
+				}
+
+				var data PostData
+
+				err := json.Unmarshal(decoder, &data)
+				if err != nil {
+					panic(err)
+				}
+				fmt.Println(data.Title, data.Content)
+				var postParams = map[string]string{"Title": "TEXT", "Content": "TEXT"}
+
+				var tables = map[string]map[string]string{"posts": postParams}
+				var post = PostData{Id: data.Id, Title: data.Title, Content: data.Content}
+
+				var posts = Db{DbName: "requests", TableName: "posts", PostD: post, FetchInfo: "posts", Tables: tables}
+				err = posts.ChangePost()
+				if err != nil {
+					panic(err)
+				}
+				var data1, _ = posts.fetchInfo()
+				fmt.Println("Информация ИЗМЕНЕННАЯ в БД: ", data1)
+			} else {
+				w.WriteHeader(403)
+				http.Redirect(w, r, "http://localhost:8000", http.StatusSeeOther)
+
+			}
+
 		}
-		var data1, _ = posts.fetchInfo()
-		fmt.Println("Информация ИЗМЕНЕННАЯ в БД: ", data1)
 
 	}
 
 	var deletePost = func(w http.ResponseWriter, r *http.Request) {
-		postId := mux.Vars(r)["post-id"]
-		fmt.Println("IDDDDDDDDDDDDDD: ", postId)
 
-		var post = PostData{Id: postId}
-
-		var posts = Db{DbName: "requests", TableName: "posts", PostD: post, FetchInfo: "posts"}
-		_, err := posts.removeInfo()
+		var cookie, err = r.Cookie("EskaUser")
+		fmt.Println("EERRRRR: ", err)
 		if err != nil {
-			panic(err)
-		}
+			http.Redirect(w, r, "http://localhost:8000", http.StatusSeeOther)
+		} else {
+			fmt.Println("Cookie - 0 : ", cookie.Value)
+			fmt.Println("Cookie: ", cookie)
 
-		var imageS = ImageServ{Id: postId}
-		var images = Db{DbName: "requests", TableName: "post_images", ImageS: imageS}
-		_, err = images.removeInfoImage()
-		if err != nil {
-			panic(err)
+			if cookie.Value == adminId {
+				postId := mux.Vars(r)["post-id"]
+				fmt.Println("IDDDDDDDDDDDDDD: ", postId)
+
+				var post = PostData{Id: postId}
+
+				var posts = Db{DbName: "requests", TableName: "posts", PostD: post, FetchInfo: "posts"}
+				_, err := posts.removeInfo()
+				if err != nil {
+					panic(err)
+				}
+
+				var imageS = ImageServ{Id: postId}
+				var images = Db{DbName: "requests", TableName: "post_images", ImageS: imageS}
+				_, err = images.removeInfoImage()
+				if err != nil {
+					panic(err)
+				}
+				http.Redirect(w, r, "http://localhost:8000/admin/posts", http.StatusSeeOther)
+			} else {
+				w.WriteHeader(403)
+				http.Redirect(w, r, "http://localhost:8000", http.StatusSeeOther)
+
+			}
+
 		}
-		http.Redirect(w, r, "http://localhost:8000/posts", http.StatusSeeOther)
 
 	}
 
 	var addPostData = func(w http.ResponseWriter, r *http.Request) {
-		_, data, imageErr := r.FormFile("image")
-		if imageErr != nil {
-			panic(imageErr)
-		}
-		fileContent, err := data.Open()
+
+		var cookie, err = r.Cookie("EskaUser")
+		fmt.Println("EERRRRR: ", err)
 		if err != nil {
-			panic(err)
+			http.Redirect(w, r, "http://localhost:8000", http.StatusSeeOther)
+		} else {
+			fmt.Println("Cookie - 0 : ", cookie.Value)
+			fmt.Println("Cookie: ", cookie)
+
+			if cookie.Value == adminId {
+				_, data, imageErr := r.FormFile("image")
+				if imageErr != nil {
+					panic(imageErr)
+				}
+				fileContent, err := data.Open()
+				if err != nil {
+					panic(err)
+				}
+				image, err := ioutil.ReadAll(fileContent)
+				if err != nil {
+					panic(err)
+				}
+				fmt.Println(" data.Image: ", r.FormValue("title"))
+				fmt.Println(" data.Image: ", r.FormValue("content"))
+
+				var uuidSQL = uuid4SQL()
+
+				date := fmt.Sprintln(time.Now().Date())
+
+				var post = PostData{Id: uuidSQL, Title: r.FormValue("title"), Content: r.FormValue("content"), Date: date}
+				fmt.Println("POST DATAAAAA :", post.Id, post.Title, post.Content, post.Date)
+
+				var imageData = ImageServ{Id: uuidSQL, Image: image}
+				var posts = Db{DbName: "requests", TableName: "posts", PostD: post, FetchInfo: "posts", ImageS: imageData}
+				err = posts.AddPost()
+				if err != nil {
+					panic(err)
+				}
+
+				err = posts.AddImage()
+				if err != nil {
+					panic(err)
+				}
+
+				var data1, _ = posts.fetchInfo()
+
+				for _, dart := range data1 {
+					fmt.Println("Информация добавленная в БД: ", dart.(PostData).Id, dart.(PostData).Title, dart.(PostData).Content, dart.(PostData).Date)
+				}
+
+				returnS("add_post.html", w)
+			} else {
+				w.WriteHeader(403)
+				http.Redirect(w, r, "http://localhost:8000", http.StatusSeeOther)
+
+			}
+
 		}
-		image, err := ioutil.ReadAll(fileContent)
-		if err != nil {
-			panic(err)
-		}
-		fmt.Println(" data.Image: ", r.FormValue("title"))
-		fmt.Println(" data.Image: ", r.FormValue("content"))
-
-		var uuidSQL = uuid4SQL()
-
-		date := fmt.Sprintln(time.Now().Date())
-
-		var post = PostData{Id: uuidSQL, Title: r.FormValue("title"), Content: r.FormValue("content"), Date: date}
-		fmt.Println("POST DATAAAAA :", post.Id, post.Title, post.Content, post.Date)
-
-		var imageData = ImageServ{Id: uuidSQL, Image: image}
-		var posts = Db{DbName: "requests", TableName: "posts", PostD: post, FetchInfo: "posts", ImageS: imageData}
-		err = posts.AddPost()
-		if err != nil {
-			panic(err)
-		}
-
-		err = posts.AddImage()
-		if err != nil {
-			panic(err)
-		}
-
-		var data1, _ = posts.fetchInfo()
-
-		for _, dart := range data1 {
-			fmt.Println("Информация добавленная в БД: ", dart.(PostData).Id, dart.(PostData).Title, dart.(PostData).Content, dart.(PostData).Date)
-		}
-
-		returnS("add_post.html", w)
 
 	}
 
 	var add_post = func(w http.ResponseWriter, r *http.Request) {
-		returnS("add_post.html", w)
 
+		var cookie, err = r.Cookie("EskaUser")
+		fmt.Println("EERRRRR: ", err)
+		if err != nil {
+			http.Redirect(w, r, "http://localhost:8000", http.StatusSeeOther)
+		} else {
+			fmt.Println("Cookie - 0 : ", cookie.Value)
+			fmt.Println("Cookie: ", cookie)
+
+			if cookie.Value == adminId {
+				returnS("add_post.html", w)
+			} else {
+				w.WriteHeader(403)
+				http.Redirect(w, r, "http://localhost:8000", http.StatusSeeOther)
+
+			}
+
+		}
 	}
 
 	var posts = func(w http.ResponseWriter, r *http.Request) {
-		returnS("all_posts.html", w)
+
+		var cookie, err = r.Cookie("EskaUser")
+		fmt.Println("EERRRRR: ", err)
+		if err != nil {
+			http.Redirect(w, r, "http://localhost:8000", http.StatusSeeOther)
+		} else {
+			fmt.Println("Cookie - 0 : ", cookie.Value)
+			fmt.Println("Cookie: ", cookie)
+
+			if cookie.Value == adminId {
+				returnS("all_posts.html", w)
+			} else {
+				w.WriteHeader(403)
+				http.Redirect(w, r, "http://localhost:8000", http.StatusSeeOther)
+
+			}
+
+		}
 
 	}
 
 	var postPage = func(w http.ResponseWriter, r *http.Request) {
-		returnS("posts.html", w)
+		var cookie, err = r.Cookie("EskaUser")
+		fmt.Println("EERRRRR: ", err)
+		if err != nil {
+			http.Redirect(w, r, "http://localhost:8000", http.StatusSeeOther)
+		} else {
+			fmt.Println("Cookie - 0 : ", cookie.Value)
+			fmt.Println("Cookie: ", cookie)
+
+			if cookie.Value == adminId {
+				returnS("posts.html", w)
+			} else {
+				w.WriteHeader(403)
+				http.Redirect(w, r, "http://localhost:8000", http.StatusSeeOther)
+
+			}
+
+		}
 
 	}
 
 	var blog = func(w http.ResponseWriter, r *http.Request) {
-		returnS("blog_management.html", w)
+		var cookie, err = r.Cookie("EskaUser")
+		fmt.Println("EERRRRR: ", err)
+		if err != nil {
+			http.Redirect(w, r, "http://localhost:8000", http.StatusSeeOther)
+		} else {
+			fmt.Println("Cookie - 0 : ", cookie.Value)
+			fmt.Println("Cookie: ", cookie)
+
+			if cookie.Value == adminId {
+				returnS("blog_management.html", w)
+			} else {
+				w.WriteHeader(403)
+				http.Redirect(w, r, "http://localhost:8000", http.StatusSeeOther)
+
+			}
+
+		}
 
 	}
 
@@ -410,6 +563,15 @@ func main() {
 
 	}
 
+	var sendMail = func(w http.ResponseWriter, r *http.Request) {
+		var name = r.FormValue("cName")
+		var email = r.FormValue("cEmail")
+		var message = r.FormValue("cMessage")
+		fmt.Println("name: ", name, "email:", email, "message: ", message)
+		contactMail(name, message, email)
+		returnS("contact.html", w)
+	}
+
 	var data = func(w http.ResponseWriter, r *http.Request) {
 		decoder, errReadAll := ioutil.ReadAll(r.Body)
 		if errReadAll != nil {
@@ -428,7 +590,7 @@ func main() {
 			userId := uuid4SQL()
 
 			var usersAddForDb = Db{DbName: "requests", TableName: "users", FetchInfo: "users",
-				UserD: UserData{Id: userId, Email: data.Email, Password: data.Password}}
+				UserD: UserData{Id: userId, Email: data.Email, Password: MD5Hash(data.Password)}}
 
 			errAddUser := usersAddForDb.AddUser()
 			if errAddUser != nil {
@@ -536,26 +698,101 @@ func main() {
 
 		userId := mux.Vars(r)["user-id"]
 
-		var users = Db{DbName: "requests", TableName: "users", FetchInfo: "users", UserD: UserData{Id: userId, Username: uuid4SQL()}}
-		err := users.ChangeUsername()
-		if err != nil {
-			panic(err)
-		}
+		var usersCheck = Db{DbName: "requests", TableName: "users", FetchInfo: "users"}
 
-		usersList, err2 := users.Users()
+		usersListCheck, err2 := usersCheck.Users()
 		if err2 != nil {
 			panic(err2)
 		}
-		fmt.Println("Изменение unknown на имя формата uuid4:", usersList)
-		//cookie1 := &http.Cookie{Name: "EskaUser", Value: userId}
-		cookie1 := http.Cookie{Name: "EskaUser", Value: userId, Expires: time.Now().Add(time.Hour), HttpOnly: false, MaxAge: 50000, Path: "/"}
-		http.SetCookie(w, &cookie1)
-		http.Redirect(w, r, "http://localhost:8000", http.StatusSeeOther)
+
+		for _, user := range usersListCheck {
+			if user.(UserData).Id == userId && user.(UserData).Username == "unknown" {
+				var users = Db{DbName: "requests", TableName: "users", FetchInfo: "users", UserD: UserData{Id: userId, Username: uuid4SQL()}}
+				err := users.ChangeUsername()
+				if err != nil {
+					panic(err)
+				}
+
+				usersList, err2 := users.Users()
+				if err2 != nil {
+					panic(err2)
+				}
+				fmt.Println("Изменение unknown на имя формата uuid4:", usersList)
+				//cookie1 := &http.Cookie{Name: "EskaUser", Value: userId}
+				cookie1 := http.Cookie{Name: "EskaUser", Value: userId, Expires: time.Now().Add(time.Hour), HttpOnly: false, MaxAge: 50000, Path: "/"}
+				http.SetCookie(w, &cookie1)
+				http.Redirect(w, r, "http://localhost:8000", http.StatusSeeOther)
+
+			}
+
+		}
 
 	}
 
 	var getUser = func(w http.ResponseWriter, r *http.Request) {
-		userId := mux.Vars(r)["user-id"]
+
+		var cookie, err = r.Cookie("EskaUser")
+		fmt.Println("EERRRRR: ", err)
+		if err != nil {
+			http.Redirect(w, r, "http://localhost:8000", http.StatusSeeOther)
+		} else {
+			fmt.Println("Cookie - 0 : ", cookie.Value)
+			fmt.Println("Cookie: ", cookie)
+
+			if cookie.Value == "5f5130c4-74ef-3f13-af4c-0b5137a36fe8" {
+				userId := mux.Vars(r)["user-id"]
+
+				var users = Db{DbName: "requests", TableName: "users", FetchInfo: "users"}
+
+				usersList, err2 := users.Users()
+				if err2 != nil {
+					panic(err2)
+				}
+
+				for _, dart := range usersList {
+					fmt.Println("Пользователь: ПРОСТО ПРОВЕРКА", dart.(UserData).Username, "Id пользователя: ", dart.(UserData).Id)
+					if dart.(UserData).Id == userId {
+						var dataPosts, jsonError = json.MarshalIndent(dart.(UserData), "", "   ")
+						if jsonError != nil {
+							panic(jsonError)
+						}
+
+						_, errWrite := w.Write(dataPosts)
+
+						if errWrite != nil {
+							panic(errWrite)
+						}
+
+					}
+
+				}
+			} else {
+				w.WriteHeader(403)
+				http.Redirect(w, r, "http://localhost:8000", http.StatusSeeOther)
+
+			}
+
+		}
+
+	}
+
+	var logIn = func(w http.ResponseWriter, r *http.Request) {
+		/*
+			Если в течение 10 минут пользователь не перейдет по ссылке для регистрации, ссылка станет неактуальной
+		*/
+
+		decoder, errReadAll := ioutil.ReadAll(r.Body)
+		if errReadAll != nil {
+			panic(errReadAll)
+		}
+
+		var data NamePassword
+
+		err := json.Unmarshal(decoder, &data)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println(data.Email, data.Password, data.ConfirmPassword)
 
 		var users = Db{DbName: "requests", TableName: "users", FetchInfo: "users"}
 
@@ -563,23 +800,15 @@ func main() {
 		if err2 != nil {
 			panic(err2)
 		}
-
 		for _, dart := range usersList {
-			fmt.Println("Пользователь: ПРОСТО ПРОВЕРКА", dart.(UserData).Username, "Id пользователя: ", dart.(UserData).Id)
-			if dart.(UserData).Id == userId {
-				var dataPosts, jsonError = json.MarshalIndent(dart.(UserData), "", "   ")
-				if jsonError != nil {
-					panic(jsonError)
-				}
-
-				_, errWrite := w.Write(dataPosts)
-
-				if errWrite != nil {
-					panic(errWrite)
-				}
+			fmt.Println("Пользователь LOGIN: ", dart.(UserData).Username, "Id пользователя: ", dart.(UserData).Id)
+			if dart.(UserData).Password == MD5Hash(data.Password) && dart.(UserData).Email == data.Email {
+				cookie1 := http.Cookie{Name: "EskaUser", Value: dart.(UserData).Id, Expires: time.Now().Add(time.Hour),
+					HttpOnly: false, MaxAge: 50000, Path: "/"}
+				http.SetCookie(w, &cookie1)
+				http.Redirect(w, r, "http://localhost:8000", http.StatusSeeOther)
 
 			}
-
 		}
 
 	}
@@ -596,23 +825,31 @@ func main() {
 	//router.Handle("/js/", http.StripPrefix("/js/", http.FileServer(http.Dir("./static/js/"))))             // ПОДКЛЮЧАЕМ JS ФАЙЛЫ
 	//router.Handle("/vendor/", http.StripPrefix("/vendor/", http.FileServer(http.Dir("./static/vendor/")))) // ПОДКЛЮЧАЕМ VENDOR ФАЙЛЫ
 	//router.Handle("/fonts/", http.StripPrefix("/fonts/", http.FileServer(http.Dir("./static/fonts/"))))    // ПОДКЛЮЧАЕМ FONTS ФАЙЛЫ
+
+	// ***********************************ADMIN SECTION*********************************************
+	router.HandleFunc("/admin", blog)                               // защита есть
+	router.HandleFunc("/admin/post-page", postPage)                 // защита есть
+	router.HandleFunc("/admin/new-post-page", add_post)             // защита есть
+	router.HandleFunc("/admin/new-post", addPostData)               // защита есть
+	router.HandleFunc("/admin/posts", posts)                        // защита есть
+	router.HandleFunc("/post-list", postList)                       // защита есть
+	router.HandleFunc("/admin/posts/{post-id}/changed", editData)   // защита есть
+	router.HandleFunc("/admin/modified-post", saveChanges)          // защита есть
+	router.HandleFunc("/admin/posts/{post-id}/deleted", deletePost) // защита есть
+
+	// ***********************************ADMIN SECTION*********************************************
+	router.HandleFunc("/send-mail", sendMail)
+
 	router.HandleFunc("/auth", auth)
 	router.HandleFunc("/reg", data)
+	router.HandleFunc("/auth-user", logIn)
 	router.HandleFunc("/", index)
 	router.HandleFunc("/about", about)
 	router.HandleFunc("/contact", contact)
 	router.HandleFunc("/category", category)
 	router.HandleFunc("/style-guide", style_guide)
 	router.HandleFunc("/reading-page/{post-id}", readPost)
-	router.HandleFunc("/admin", blog)
-	router.HandleFunc("/post-page", postPage)
-	router.HandleFunc("/new-post-page", add_post)
-	router.HandleFunc("/new-post", addPostData)
-	router.HandleFunc("/posts", posts)
-	router.HandleFunc("/post-list", postList)
-	router.HandleFunc("/posts/{post-id}/changed", editData)
-	router.HandleFunc("/modified-post", saveChanges)
-	router.HandleFunc("/posts/{post-id}/deleted", deletePost)
+
 	router.HandleFunc("/get-image-by-id", getImageById)
 	router.HandleFunc("/get-post-by-id", getPostById)
 	//router.HandleFunc("/start_timer", timerForReg)
@@ -647,6 +884,7 @@ func main() {
 		returnS("index.html", w)
 
 	}
+
 	router.HandleFunc("/test_cookie", testCookie)
 	listenError := http.ListenAndServe(":8000", router)
 

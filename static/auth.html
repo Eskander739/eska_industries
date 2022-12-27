@@ -47,47 +47,28 @@
 		  xhr.send(data);
 		}
 	  </script>
-	<script>
-		// encode.onclick = async (e) => {
-		// 	let response = await fetch('http://localhost:8000/reg', {
-		// 			method: 'POST',
-		// 			headers: {
-		// 				'Content-Type': 'application/json',
-		// 			},
-		// 	})
+		<script>
+			function sendJSON() {
 	
-		// 	let text = await response.text(); // read response body as text
-		// 	data = JSON.parse(text);
-		// 	document.getElementsByClassName("login100-form-btn").innerHTML = text;
-		//   //  document.querySelector("#encoded").innerHTML = `First name = ${data.firstname} <br/> 
-		//   //                                                  Last name = ${data.lastname} <br/>
-		//   //                                                  Age    = ${data.age}`
-		// };
-	
-		formElem.onsubmit = async (e) => {
-		  e.preventDefault();
-		  var form = document.querySelector("#formElem");
-		 // var form = document.forms[0];
-	
-			data = {
-			  firstname : form.querySelector('input[name="username"]').value,
-			  lastname : form.querySelector('input[name="pass"]').value,
-			  age : 5
+			  let name = document.querySelector('input[name="username"]');
+			  let password = document.querySelector('input[name="pass"]');
+			  let result = document.querySelector('.result');
+			  let xhr = new XMLHttpRequest();
+			  let url = "http://localhost:8000/auth-user";
+			  xhr.open("POST", url, true);
+			  xhr.setRequestHeader("Content-Type", "application/json");
+			  xhr.onreadystatechange = function () {
+				if (xhr.readyState === 4 && xhr.status === 200) {
+				  result.innerHTML = this.responseText;
+				}
+			  };
+			  var data = JSON.stringify({ "email": name.value, "password": password.value});
+			  xhr.send(data);
+			//   name.value = "";
+			//   password.value = "";
+			//   confirm_password.value = "";
 			}
-	
-			let response = await fetch('http://localhost:8000/reg', {
-					method: 'POST', // or 'PUT'
-					headers: {
-						'Content-Type': 'application/json',
-					},
-					body: JSON.stringify(data),
-			})
-	
-			let text = await response.text(); // read response body as text
-			document.querySelector("#decoded").innerHTML = text;
-		};
-	</script>
-
+		  </script>
 	
 	<div class="limiter">
 		<div class="container-login100" style="background-image: url('img/bg-01.jpg');">

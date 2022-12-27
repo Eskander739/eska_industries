@@ -23,7 +23,7 @@
     ================================================== -->
     <script src="js/modernizr.js"></script>
     <script src="js/pace.min.js"></script>
-
+    <script src="js/index_js.js"></script>
     <!-- favicons
     ================================================== -->
     <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
@@ -41,7 +41,7 @@
             <div class="header__content row">
 
                 <div class="header__logo">
-                    <a class="logo" href="index.html">
+                    <a class="logo" href="http://localhost:8000">
                         <img src="img/logo.png" alt="Homepage">
                     </a>
                 </div> <!-- end header__logo -->
@@ -62,6 +62,10 @@
                 </ul> <!-- end header__social -->
 
                 <a class="header__search-trigger" href="#0"></a>
+                <a class="auth" id="userLink" href="http://localhost:8000/auth">
+                    <img id="userLogo" src="img/user-logo.png" alt="Homepage" style="width: 60px; height: 60px;">
+                </a>
+                <label class="userName" id="userName"></label>
 
                 <div class="header__search">
 
@@ -86,7 +90,7 @@
 
                     <ul class="header__nav">
                         <li class="current"><a href="http://localhost:8000/" title="">Home</a></li>
-                        <li class="has-children">
+                        <!-- <li class="has-children">
                             <a href="#0" title="">Categories</a>
                             <ul class="sub-menu">
                             <li><a href="category.html">Lifestyle</a></li>
@@ -96,8 +100,8 @@
                             <li><a href="category.html">Travel</a></li>
                             <li><a href="category.html">Work</a></li>
                             </ul>
-                        </li>
-                        <li class="has-children">
+                        </li> -->
+                        <!-- <li class="has-children">
                             <a href="#0" title="">Blog</a>
                             <ul class="sub-menu">
                             <li><a href="single-video.html">Video Post</a></li>
@@ -105,8 +109,8 @@
                             <li><a href="single-gallery.html">Gallery Post</a></li>
                             <li><a href="single-standard.html">Standard Post</a></li>
                             </ul>
-                        </li>
-                        <li><a href="http://localhost:8000/style-guide" title="">Styles</a></li>
+                        </li> -->
+                        <!-- <li><a href="http://localhost:8000/style-guide" title="">Styles</a></li> -->
                         <li><a href="http://localhost:8000/about" title="">About</a></li>
                         <li><a href="http://localhost:8000/contact" title="">Contact</a></li>
                     </ul> <!-- end header__nav -->

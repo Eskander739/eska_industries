@@ -94,9 +94,58 @@ function DataPosts() {
     document.getElementsByClassName('body')[0].appendChild(mainPost);
     getImage();
 }
+async function getUser() {
+    // alert(1);
+    
+    let xhr = new XMLHttpRequest();
+    let url = `http://localhost:8000/user/${getCookie("EskaUser")}`;
+    xhr.onreadystatechange = function () {
+        if (this.readyState == 4) {
+
+        }
+
+        if (this.status == 200) {
+            var resp = JSON.parse(this.responseText);
+            
+            if (resp.email != undefined){
+                
+                var username = document.getElementById("userName");
+                var immgg = document.getElementById("userLogo");
+                var link = document.getElementById("userLink");
+                immgg.src = "/img/user-registered.png"
+                username.innerText = getCookie("EskaUser");
+                
+                link.href = "";
+            }
+
+            // alert(resp.email);
+        }
+
+
+        // end of state change: it can be after some time (async)
+
+    };
+    xhr.open("POST", url, true);
+    xhr.setRequestHeader("Content-Type", "application/json");
+    xhr.send();
+    // alert(xhr.response);
+
+
+}
+function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+}
+// window.onload = function () {
+//     // setCookie('ppkcookie','testcookie',7);
+//     // alert(document.cookie);
+//     // alert(getCookie("test"))
+//     getUser();
+// }
 
 window.onload = function () {
-    
+    getUser();
     getData(DataPosts);
 }
 
