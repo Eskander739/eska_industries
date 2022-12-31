@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" type="text/css" href="/css/about-me.css">
+    <script src="/js/about-me.js"></script>
+    <title>Document</title>
+</head>
+
+<body>
+    <!-- Side navigation -->
+    <div class="sidenav">
+        <a href="http://localhost:8000">Главное меню</a>
+        <a href="http://localhost:8000/account/about-me">О себе</a>
+        <a href="http://localhost:8000/account/security">Безопасность</a>
+        <a href="http://localhost:8000/account/support">Поддержка</a>
+        <!-- <a href="#">Contact</a> -->
+    </div>
+
+    <!-- Page content -->
+    <div class="mainPage">
+    <div class="main">
+        <!-- <div><label class="name" id="name">Ваше имя - </label></div> -->
+        <!-- <div><label class="email" id="email">Ваша почта - </label></div> -->
+        <div class="first-block"><p class="input-block" id="input-block"><label>Ваше имя </label><input type="text"  class="name" id="name" disabled /><button id="change-name" onclick="changeButton()">изменить</button></p></div>
+        <div class="second-block"><p class="input-block-email"><label>Ваша почта </label><input type="text" class="email" id="email" disabled /><button  id="change-email" onclick="changeButtonEmail()">изменить</button></p></div>
+    </div>
+</div>
+</body>
+
+</html>

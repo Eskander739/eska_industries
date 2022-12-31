@@ -331,9 +331,9 @@ async function getUser() {
                 var immgg = document.getElementById("userLogo");
                 var link = document.getElementById("userLink");
                 immgg.src = "img/user-registered.png"
-                username.innerText = getCookie("EskaUser");
+                username.innerText = resp.username;
                 
-                link.href = "";
+                link.href = "http://localhost:8000/account/about-me";
             }
 
             // alert(resp.email);

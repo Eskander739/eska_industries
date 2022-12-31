@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/md5"
+	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -73,6 +74,47 @@ func contactMail(User string, bodyUUID4 string, UserEmail string) {
 	}
 
 	fmt.Println("Email sent successfully")
+}
+func RandomValue() string {
+
+	p, _ := rand.Prime(rand.Reader, 64)
+	var value = fmt.Sprintf("%s", p)
+	return value[:4]
+}
+
+func changeEmail(UserEmail string) string {
+	var code = RandomValue()
+
+	go func() {
+		from := "ataxxonnext@yandex.com"
+
+		user := "ataxxonnext@yandex.com"
+		password := "qpxdchfajfcsmyhj"
+
+		to := []string{
+			UserEmail,
+		}
+		//"imap": "imap.yandex.ru", "smtp": "smtp.yandex.ru", "imap_port": 993, "smtp_port": 587
+		addr := "smtp.yandex.ru:587"
+		host := "smtp.yandex.ru"
+
+		msg := []byte("From: ataxxonnext@yandex.com\r\n" +
+			"To:" + UserEmail + "\r\n" +
+			"Subject: Смена почты \r\n\r\n" + // Заголовок
+			"Код для смены почты -  " + code) // Тело сообщения
+
+		auth := smtp.PlainAuth("", user, password, host)
+
+		err := smtp.SendMail(addr, auth, from, to, msg)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		fmt.Println("Email sent successfully")
+	}()
+
+	return code
 }
 
 func returnS(name string, w http.ResponseWriter) {
@@ -803,13 +845,122 @@ func main() {
 		for _, dart := range usersList {
 			fmt.Println("Пользователь LOGIN: ", dart.(UserData).Username, "Id пользователя: ", dart.(UserData).Id)
 			if dart.(UserData).Password == MD5Hash(data.Password) && dart.(UserData).Email == data.Email {
+				//if dart.(UserData).Password == data.Password && dart.(UserData).Email == data.Email {
 				cookie1 := http.Cookie{Name: "EskaUser", Value: dart.(UserData).Id, Expires: time.Now().Add(time.Hour),
 					HttpOnly: false, MaxAge: 50000, Path: "/"}
 				http.SetCookie(w, &cookie1)
-				http.Redirect(w, r, "http://localhost:8000", http.StatusSeeOther)
 
 			}
 		}
+
+	}
+
+	var account = func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "http://localhost:8000/account/about-me", http.StatusSeeOther)
+
+	}
+
+	var aboutMe = func(w http.ResponseWriter, r *http.Request) {
+		returnS("about-me.html", w)
+
+	}
+	var security = func(w http.ResponseWriter, r *http.Request) {
+		returnS("security.html", w)
+
+	}
+	var support = func(w http.ResponseWriter, r *http.Request) {
+		returnS("support.html", w)
+
+	}
+
+	var changeName = func(w http.ResponseWriter, r *http.Request) {
+		/*
+			Если в течение 10 минут пользователь не перейдет по ссылке для регистрации, ссылка станет неактуальной
+		*/
+
+		userId := mux.Vars(r)["user-id"]
+		newName := mux.Vars(r)["new-name"]
+
+		var usersCheck = Db{DbName: "requests", TableName: "users", FetchInfo: "users"}
+
+		usersListCheck, err2 := usersCheck.Users()
+		if err2 != nil {
+			panic(err2)
+		}
+
+		for _, user := range usersListCheck {
+			if user.(UserData).Id == userId {
+				var users = Db{DbName: "requests", TableName: "users", FetchInfo: "users", UserD: UserData{Id: userId, Username: newName}}
+				err := users.ChangeUsername()
+				if err != nil {
+					panic(err)
+				}
+
+				usersList, err2 := users.Users()
+				if err2 != nil {
+					panic(err2)
+				}
+				fmt.Println("Изменение unknown на имя формата uuid4:", usersList)
+				http.Redirect(w, r, "http://localhost:8000/account/about-me", http.StatusSeeOther)
+
+			}
+
+		}
+
+	}
+
+	var changeEmailApprove = func(w http.ResponseWriter, r *http.Request) {
+		/*
+			Если в течение 10 минут пользователь не перейдет по ссылке для регистрации, ссылка станет неактуальной
+		*/
+
+		userId := mux.Vars(r)["user-id"]
+		newEmail := mux.Vars(r)["new-email"]
+
+		var usersCheck = Db{DbName: "requests", TableName: "users", FetchInfo: "users"}
+
+		usersListCheck, err2 := usersCheck.Users()
+		if err2 != nil {
+			panic(err2)
+		}
+
+		for _, user := range usersListCheck {
+			if user.(UserData).Id == userId {
+				var users = Db{DbName: "requests", TableName: "users", FetchInfo: "users", UserD: UserData{Id: userId, Email: newEmail}}
+				err := users.ChangeEmail()
+				if err != nil {
+					panic(err)
+				}
+
+				usersList, err2 := users.Users()
+				if err2 != nil {
+					panic(err2)
+				}
+				fmt.Println("Изменение ПОЧТЫЫЫЫ: ", usersList)
+				http.Redirect(w, r, "http://localhost:8000/account/about-me", http.StatusSeeOther)
+
+			}
+
+		}
+
+	}
+
+	var changeEmaill = func(w http.ResponseWriter, r *http.Request) {
+		/*
+			Если в течение 10 минут пользователь не перейдет по ссылке для регистрации, ссылка станет неактуальной
+		*/
+
+		userEmail := mux.Vars(r)["current-email"]
+		fmt.Println("userEmail: ", userEmail)
+		var code = changeEmail(userEmail)
+		var data1 = map[string]string{"code": code}
+		var dataCode, _ = json.Marshal(data1)
+		_, err := w.Write(dataCode)
+		fmt.Println("dataCode: ", dataCode)
+		if err != nil {
+			panic(err)
+		}
+		w.WriteHeader(200)
 
 	}
 
@@ -857,35 +1008,14 @@ func main() {
 	router.HandleFunc("/registration", registration)
 	router.HandleFunc("/new-user/{user-id}", approveUser)
 	router.HandleFunc("/user/{user-id}", getUser)
+	router.HandleFunc("/account", account)
+	router.HandleFunc("/account/about-me", aboutMe)
+	router.HandleFunc("/account/security", security)
+	router.HandleFunc("/account/support", support)
+	router.HandleFunc("/account/about-me/change-name/{user-id}/{new-name}", changeName)
 
-	var testCookie = func(w http.ResponseWriter, r *http.Request) {
-		/*
-			УДАЛЯЕТ КУКИ
-		*/
-		//c := &http.Cookie{
-		//	Name:    "test",
-		//	Value:   "ESKA",
-		//	Path:    "/",
-		//	Expires: time.Unix(0, 0),
-		//
-		//	HttpOnly: true,
-		//}
-		//
-		//http.SetCookie(w, c)
-
-		(w).Header().Set("Access-Control-Allow-Origin", "http://localhost:8000")
-		(w).Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-		(w).Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
-		(w).Header().Set("Access-Control-Allow-Credentials", "true")
-
-		cookie1 := &http.Cookie{Name: "Айй дири", Value: "ДИН ДИН ДАЙ", Path: "/"}
-		http.SetCookie(w, cookie1)
-
-		returnS("index.html", w)
-
-	}
-
-	router.HandleFunc("/test_cookie", testCookie)
+	router.HandleFunc("/account/about-me/change-email/{current-email}", changeEmaill)
+	router.HandleFunc("/account/about-me/change-email/approve/{user-id}/{new-email}", changeEmailApprove)
 	listenError := http.ListenAndServe(":8000", router)
 
 	if listenError != nil {

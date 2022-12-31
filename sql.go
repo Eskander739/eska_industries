@@ -13,6 +13,11 @@ import (
 
 const path = "C:\\Users\\eskander.baisiev\\GolandProjects\\awesomeProject\\eska_holdings\\eska.db"
 
+type Like struct {
+	Id     string
+	UserId string `json:"user_id"`
+}
+
 type PostData struct {
 	Id      string
 	Title   string `json:"title"`
@@ -41,6 +46,7 @@ type Db struct {
 	FetchInfo string
 	ImageS    ImageServ
 	UserD     UserData
+	Like      Like
 }
 
 //type Post struct {
@@ -202,6 +208,27 @@ func (c Db) ChangeUsername() error {
 
 	records := `UPDATE users SET Username = ?WHERE Id = ?`
 	_, execError := db.Exec(records, c.UserD.Username, c.UserD.Id)
+
+	if execError != nil {
+		ErrorAddInfo = execError
+	}
+	return ErrorAddInfo
+}
+
+func (c Db) ChangeEmail() error {
+	/*
+		Добавляет пост в БД
+	*/
+
+	db, dateBaseError := sql.Open("sqlite3", c.DbName)
+	if dateBaseError != nil {
+		panic(dateBaseError)
+	}
+
+	var ErrorAddInfo error
+
+	records := `UPDATE users SET Email = ?WHERE Id = ?`
+	_, execError := db.Exec(records, c.UserD.Email, c.UserD.Id)
 
 	if execError != nil {
 		ErrorAddInfo = execError
@@ -502,6 +529,10 @@ func (c Db) getPostById() ([]byte, error) {
 	return nil, nil
 
 }
+
+//***********************************LIKES AND COMMENTS PAGE*****************************************************
+
+//***********************************LIKES AND COMMENTS PAGE*****************************************************
 
 func (c Db) createTable() error {
 	/*
